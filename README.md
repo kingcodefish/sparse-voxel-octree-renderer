@@ -1,5 +1,3 @@
 # sparse-voxel-octree-renderer
 
-Not much to see here.
-
-At the moment to build, requires the CUDA examples from the CUDA by Example textbook. Probably will change.
+Eventually will be a Vulkan-based implementation Sparse Voxel Octree Renderer of the Neural Geometric Level of Detail octree representation.
