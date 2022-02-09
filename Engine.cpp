@@ -242,8 +242,9 @@ void VulkanEngine::init_vulkan()
 
 	//use vkbootstrap to select a gpu. 
 	//We want a gpu that can write to the SDL surface and supports vulkan 1.2
-	VkPhysicalDeviceShaderDrawParametersFeatures features = {};
-	features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_DRAW_PARAMETERS_FEATURES;
+	VkPhysicalDeviceVulkan11Features features = {};
+	features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_1_FEATURES;
+	features.shaderDrawParameters = true;
 	vkb::PhysicalDeviceSelector selector{ vkb_inst };
 	vkb::PhysicalDevice physicalDevice = selector
 		.set_minimum_version(1, 2)
@@ -260,7 +261,6 @@ void VulkanEngine::init_vulkan()
 	// Get the VkDevice handle used in the rest of a vulkan application
 	_device = vkbDevice.device;
 	_chosenGPU = physicalDevice.physical_device;
-	std::cout << physicalDevice.features.drawIndirectFirstInstance << std::endl;
 
 	// use vkbootstrap to get a Graphics queue
 	_graphicsQueue = vkbDevice.get_queue(vkb::QueueType::graphics).value();
@@ -654,7 +654,6 @@ bool VulkanEngine::load_shader_module(const char* filePath, VkShaderModule* outS
 
 	//check that the creation goes well.
 	VkShaderModule shaderModule;
-	std::cout << "Problem creating shader module for " << filePath << std::endl;
 	if (vkCreateShaderModule(_device, &createInfo, nullptr, &shaderModule) != VK_SUCCESS) {
 		return false;
 	}
