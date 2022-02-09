@@ -54,11 +54,14 @@ bool Mesh::load_from_obj(const char* filename)
 	std::string err;
 
 	//load the OBJ file
-	tinyobj::LoadObj(&attrib, &shapes, &materials, &err, filename);
+	bool ret = tinyobj::LoadObj(&attrib, &shapes, &materials, &err, filename);
 	//if we have any error, print it to the console, and break the mesh loading. 
 	//This happens if the file cant be found or is malformed
 	if (!err.empty()) {
 		std::cerr << err << std::endl;
+	}
+
+	if (!ret) {
 		return false;
 	}
 

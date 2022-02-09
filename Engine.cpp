@@ -280,7 +280,7 @@ void VulkanEngine::init_vulkan()
 
 	vkGetPhysicalDeviceProperties(_chosenGPU, &_gpuProperties);
 
-	std::cout << "The gpu has a minimum buffer alignement of " << _gpuProperties.limits.minUniformBufferOffsetAlignment << std::endl;
+	std::cout << "The gpu has a minimum buffer alignment of " << _gpuProperties.limits.minUniformBufferOffsetAlignment << std::endl;
 
 }
 
