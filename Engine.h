@@ -6,6 +6,7 @@
 #include <functional>
 #include <deque>
 #include "Mesh.h"
+#include "Octree.h"
 #include <unordered_map>
 
 #include <glm/glm.hpp>
@@ -65,6 +66,16 @@ struct RenderObject {
 
 	glm::mat4 transformMatrix;
 };
+
+struct RenderObjectOctree {
+	Octree* octree;
+
+	Material* material;
+	
+	glm::mat4 transformMatrix;
+
+	uint8_t lod; // The LOD to render the octree at.
+}
 
 
 struct FrameData {
@@ -173,9 +184,11 @@ public:
 
 	//default array of renderable objects
 	std::vector<RenderObject> _renderables;
+	std::vector<RenderObjectOctree> _renderableOctrees;
 
 	std::unordered_map<std::string, Material> _materials;
 	std::unordered_map<std::string, Mesh> _meshes;
+	std::unordered_map<std::string, Octree> _octrees;
 	//functions
 
 	//create material and add it to the map
@@ -186,6 +199,9 @@ public:
 
 	//returns nullptr if it cant be found
 	Mesh* get_mesh(const std::string& name);
+
+	// returns nullptr if it cant be found
+	Octree* get_octree(const std::string& name);
 
 	//our draw function
 	void draw_objects(VkCommandBuffer cmd, RenderObject* first, int count);
@@ -218,5 +234,9 @@ private:
 
 	void load_meshes();
 
+	void load_octrees();
+
 	void upload_mesh(Mesh& mesh);
+
+	void upload_octree(Octree& octree);
 };

@@ -736,16 +736,26 @@ void VulkanEngine::load_meshes()
 	//we dont care about the vertex normals
 
 	//load the monkey
-	Mesh monkeyMesh{};
-	monkeyMesh.load_from_obj("../assets/monkey.obj");
+	//Mesh monkeyMesh{};
+	//monkeyMesh.load_from_obj("../assets/monkey.obj");
 
-	upload_mesh(triMesh);
-	upload_mesh(monkeyMesh);
+	//upload_mesh(triMesh);
+	//upload_mesh(monkeyMesh);
 
-	_meshes["monkey"] = monkeyMesh;
-	_meshes["triangle"] = triMesh;
+	//_meshes["monkey"] = monkeyMesh;
+	//_meshes["triangle"] = triMesh;
 }
 
+void VulkanEngine::load_octrees()
+{
+	Octree armadilloOctree;
+
+	armadilloOctree.load_from_npy("../assets/armadillo2.npz");
+
+	upload_octree(armadilloOctree);
+
+	_octrees["armadillo"] = armadilloOctree;
+}
 
 void VulkanEngine::upload_mesh(Mesh& mesh)
 {
@@ -784,6 +794,11 @@ void VulkanEngine::upload_mesh(Mesh& mesh)
 	vmaUnmapMemory(_allocator, mesh._vertexBuffer._allocation);
 }
 
+void VulkanEngine::upload_octree(Octree& octree)
+{
+	// Not implemented.
+}
+
 
 Material* VulkanEngine::create_material(VkPipeline pipeline, VkPipelineLayout layout, const std::string& name)
 {
@@ -816,6 +831,15 @@ Mesh* VulkanEngine::get_mesh(const std::string& name)
 	else {
 		return &(*it).second;
 	}
+}
+
+Octree* VulkanEngine::get_octree(const std::string& name)\
+{
+	auto it = _octrees.find(name);
+	if (it == _octrees.end())
+		return nullptr;
+	else
+		return &(*it).second;	
 }
 
 
@@ -917,26 +941,11 @@ void VulkanEngine::draw_objects(VkCommandBuffer cmd,RenderObject* first, int cou
 
 void VulkanEngine::init_scene()
 {
-	RenderObject monkey;
-	monkey.mesh = get_mesh("monkey");
-	monkey.material = get_material("defaultmesh");
-	monkey.transformMatrix = glm::mat4{ 1.0f };
-
-	_renderables.push_back(monkey);
-
-	for (int x = -20; x <= 20; x++) {
-		for (int y = -20; y <= 20; y++) {
-
-			RenderObject tri;
-			tri.mesh = get_mesh("triangle");
-			tri.material = get_material("defaultmesh");
-			glm::mat4 translation = glm::translate(glm::mat4{ 1.0 }, glm::vec3(x, 0, y));
-			glm::mat4 scale = glm::scale(glm::mat4{ 1.0 }, glm::vec3(0.2, 0.2, 0.2));
-			tri.transformMatrix = translation * scale;
-
-			_renderables.push_back(tri);
-		}
-	}
+	RenderObjectOctree octreeModel;
+	octreeModel.octree = get_octree("armadillo");
+	octreeModel.material = get_material("defaultmesh");
+	octreeModel.transformMatrix = glm::mat{ 1.0f };
+	_renderableOctrees.push_back(octreeModel);
 }
 
 AllocatedBuffer VulkanEngine::create_buffer(size_t allocSize, VkBufferUsageFlags usage, VmaMemoryUsage memoryUsage)
