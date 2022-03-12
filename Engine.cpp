@@ -944,7 +944,7 @@ void VulkanEngine::init_scene()
 	RenderObjectOctree octreeModel;
 	octreeModel.octree = get_octree("armadillo");
 	octreeModel.material = get_material("defaultmesh");
-	octreeModel.transformMatrix = glm::mat{ 1.0f };
+	octreeModel.transformMatrix = glm::mat4{ 1.0f };
 	_renderableOctrees.push_back(octreeModel);
 }
 

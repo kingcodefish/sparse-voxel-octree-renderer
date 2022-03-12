@@ -9,7 +9,7 @@ glm/0.9.9.8
 tinyobjloader/1.0.6 
 
 [generators]
-cmake_multi
+cmake
 
 [imports]
 ./res/bindings, imgui_impl_sdl.cpp -> ../bindings

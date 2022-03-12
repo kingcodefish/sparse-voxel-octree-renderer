@@ -71,11 +71,11 @@ struct RenderObjectOctree {
 	Octree* octree;
 
 	Material* material;
-	
+
 	glm::mat4 transformMatrix;
 
 	uint8_t lod; // The LOD to render the octree at.
-}
+};
 
 
 struct FrameData {

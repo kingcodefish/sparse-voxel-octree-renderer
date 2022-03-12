@@ -1,18 +1,16 @@
 #include "Octree.h"
 
-#include <cnpy.h>
-
 namespace {
     constexpr int MAX_LEVELS = 16; // Depth of the octree (i.e., LODs)
 }
 
 // Load Octree Motron Code form data from NPY
-bool Octree::load_from_npy(const char* filename)
+void Octree::load_from_npy(const char* filename)
 {
-    cnpy::NpyArray arr = cnpy::npy_load(filename);
-    uint8_t* loaded_data = arr.data<uint8_t>();
+    data = cnpy::npy_load(filename);
+    //uint8_t* loaded_data = arr.data<uint8_t>();
 
-    return convert_to_buffer(loaded_data);
+    //return convert_to_buffer(loaded_data);
 }
 
 // Converts the NPY data buffer to its Kaolin octree structure representation.
