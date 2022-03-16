@@ -1,6 +1,7 @@
 #include "Mesh.h"
 #include <tiny_obj_loader.h>
 #include <iostream>
+#include <unordered_map>
 
 VertexInputDescription Vertex::get_vertex_description()
 {
@@ -65,46 +66,41 @@ bool Mesh::load_from_obj(const char* filename)
 		return false;
 	}
 
+	std::unordered_map<Vertex, uint32_t> uniqueVertices{};
+
 	// Loop over shapes
-	for (size_t s = 0; s < shapes.size(); s++) {
-		// Loop over faces(polygon)
-		size_t index_offset = 0;
-		for (size_t f = 0; f < shapes[s].mesh.num_face_vertices.size(); f++) {
+	for (const auto& shape : shapes) {
+		for (const auto& idx : shape.mesh.indices) {
+			Vertex vertex{};
 
-			//hardcode loading to triangles
-			int fv = 3;
+			//vertex position
+			tinyobj::real_t vx = attrib.vertices[3 * idx.vertex_index + 0];
+			tinyobj::real_t vy = attrib.vertices[3 * idx.vertex_index + 1];
+			tinyobj::real_t vz = attrib.vertices[3 * idx.vertex_index + 2];
+			//vertex normal
+			tinyobj::real_t nx = attrib.normals[3 * idx.normal_index + 0];
+			tinyobj::real_t ny = attrib.normals[3 * idx.normal_index + 1];
+			tinyobj::real_t nz = attrib.normals[3 * idx.normal_index + 2];
 
-			// Loop over vertices in the face.
-			for (size_t v = 0; v < fv; v++) {
-				// access to vertex
-				tinyobj::index_t idx = shapes[s].mesh.indices[index_offset + v];
+			//copy it into our vertex
+			Vertex new_vert;
+			new_vert.position.x = vx;
+			new_vert.position.y = vy;
+			new_vert.position.z = vz;
 
-				//vertex position
-				tinyobj::real_t vx = attrib.vertices[3 * idx.vertex_index + 0];
-				tinyobj::real_t vy = attrib.vertices[3 * idx.vertex_index + 1];
-				tinyobj::real_t vz = attrib.vertices[3 * idx.vertex_index + 2];
-				//vertex normal
-				tinyobj::real_t nx = attrib.normals[3 * idx.normal_index + 0];
-				tinyobj::real_t ny = attrib.normals[3 * idx.normal_index + 1];
-				tinyobj::real_t nz = attrib.normals[3 * idx.normal_index + 2];
+			new_vert.normal.x = nx;
+			new_vert.normal.y = ny;
+			new_vert.normal.z = nz;
 
-				//copy it into our vertex
-				Vertex new_vert;
-				new_vert.position.x = vx;
-				new_vert.position.y = vy;
-				new_vert.position.z = vz;
+			//we are setting the vertex color as the vertex normal. This is just for display purposes
+			new_vert.color = new_vert.normal;
 
-				new_vert.normal.x = nx;
-				new_vert.normal.y = ny;
-				new_vert.normal.z = nz;
-
-				//we are setting the vertex color as the vertex normal. This is just for display purposes
-				new_vert.color = new_vert.normal;
-
-
-				_vertices.push_back(new_vert);
+			if (uniqueVertices.count(vertex) == 0) {
+				uniqueVertices[vertex] = static_cast<uint32_t>(_vertices.size());
+				_vertices.push_back(vertex);
 			}
-			index_offset += fv;
+
+			_indices.push_back(uniqueVertices[vertex]);
 		}
 	}
 

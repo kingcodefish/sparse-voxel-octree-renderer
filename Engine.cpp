@@ -109,10 +109,8 @@ void VulkanEngine::draw()
 
 	VK_CHECK(vkBeginCommandBuffer(cmd, &cmdBeginInfo));
 
-	//make a clear-color from frame number. This will flash with a 120 frame period.
 	VkClearValue clearValue;
-	float flash = abs(sin(_frameNumber / 120.f));
-	clearValue.color = { { 0.0f, 0.0f, flash, 1.0f } };
+	clearValue.color = { { 0.0f, 0.0f, 0.0f, 1.0f } };
 
 	//clear depth at 1
 	VkClearValue depthClear;
@@ -512,13 +510,13 @@ void VulkanEngine::init_sync_structures()
 void VulkanEngine::init_pipelines()
 {
 	VkShaderModule colorMeshShader;
-	if (!load_shader_module("../shaders/default_lit.frag.spv", &colorMeshShader))
+	if (!load_shader_module("./shaders/octree.frag.spv", &colorMeshShader))
 	{
 		std::cout << "Error when building the colored mesh shader" << std::endl;
 	}
 
 	VkShaderModule meshVertShader;
-	if (!load_shader_module("../shaders/tri_mesh_ssbo.vert.spv", &meshVertShader))
+	if (!load_shader_module("./shaders/octree.vert.spv", &meshVertShader))
 	{
 		std::cout << "Error when building the mesh vertex shader module" << std::endl;
 	}
@@ -720,30 +718,28 @@ VkPipeline PipelineBuilder::build_pipeline(VkDevice device, VkRenderPass pass)
 
 void VulkanEngine::load_meshes()
 {
-	Mesh triMesh{};
-	//make the array 3 vertices long
-	triMesh._vertices.resize(3);
+	Mesh rectMesh{};
 
-	//vertex positions
-	triMesh._vertices[0].position = { 1.f,1.f, 0.0f };
-	triMesh._vertices[1].position = { -1.f,1.f, 0.0f };
-	triMesh._vertices[2].position = { 0.f,-1.f, 0.0f };
+	rectMesh._vertices.resize(4);
+	rectMesh._indices.resize(6);
+
+	rectMesh._vertices[0].position = { -1.f, -1.f, 0.0f };
+	rectMesh._vertices[1].position = { 1.f, -1.f, 0.0f };
+	rectMesh._vertices[2].position = { 1.f, 1.f, 0.0f };
+	rectMesh._vertices[3].position = { -1.f, 1.f, 0.0f };
 
 	//vertex colors, all green
-	triMesh._vertices[0].color = { 0.f,1.f, 0.0f }; //pure green
-	triMesh._vertices[1].color = { 0.f,1.f, 0.0f }; //pure green
-	triMesh._vertices[2].color = { 0.f,1.f, 0.0f }; //pure green
+	rectMesh._vertices[0].color = { 1.f, 1.f, 1.f };
+	rectMesh._vertices[1].color = { 1.f, 1.f, 1.f };
+	rectMesh._vertices[2].color = { 1.f, 1.f, 1.f };
+	rectMesh._vertices[3].color = { 1.f, 1.f, 1.f };
 	//we dont care about the vertex normals
 
-	//load the monkey
-	//Mesh monkeyMesh{};
-	//monkeyMesh.load_from_obj("../assets/monkey.obj");
+	rectMesh._indices = { 0, 1, 2, 2, 3, 0 };
 
-	//upload_mesh(triMesh);
-	//upload_mesh(monkeyMesh);
+	upload_mesh(rectMesh);
 
-	//_meshes["monkey"] = monkeyMesh;
-	//_meshes["triangle"] = triMesh;
+	_meshes["rectangle"] = rectMesh;
 }
 
 void VulkanEngine::load_octrees()
@@ -768,7 +764,6 @@ void VulkanEngine::upload_mesh(Mesh& mesh)
 	//this buffer is going to be used as a Vertex Buffer
 	bufferInfo.usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
 
-
 	//let the VMA library know that this data should be writeable by CPU, but also readable by GPU
 	VmaAllocationCreateInfo vmaallocInfo = {};
 	vmaallocInfo.usage = VMA_MEMORY_USAGE_CPU_TO_GPU;
@@ -779,19 +774,30 @@ void VulkanEngine::upload_mesh(Mesh& mesh)
 		&mesh._vertexBuffer._allocation,
 		nullptr));
 
+	// Index Buffer
+	bufferInfo.size = mesh._indices.size() * sizeof(uint32_t);
+	bufferInfo.usage = VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
+
+	VK_CHECK(vmaCreateBuffer(_allocator, &bufferInfo, &vmaallocInfo,
+		&mesh._indexBuffer._buffer,
+		&mesh._indexBuffer._allocation,
+		nullptr));
+
 	//add the destruction of triangle mesh buffer to the deletion queue
 	_mainDeletionQueue.push_function([=]() {
-
 		vmaDestroyBuffer(_allocator, mesh._vertexBuffer._buffer, mesh._vertexBuffer._allocation);
-		});
+		vmaDestroyBuffer(_allocator, mesh._indexBuffer._buffer, mesh._indexBuffer._allocation);
+	});
 
-	//copy vertex data
+	//copy vertex and index data
 	void* data;
 	vmaMapMemory(_allocator, mesh._vertexBuffer._allocation, &data);
-
 	memcpy(data, mesh._vertices.data(), mesh._vertices.size() * sizeof(Vertex));
-
 	vmaUnmapMemory(_allocator, mesh._vertexBuffer._allocation);
+
+	vmaMapMemory(_allocator, mesh._indexBuffer._allocation, &data);
+	memcpy(data, mesh._indices.data(), mesh._indices.size() * sizeof(uint32_t));
+	vmaUnmapMemory(_allocator, mesh._indexBuffer._allocation);
 }
 
 void VulkanEngine::upload_octree(Octree& octree)
@@ -847,11 +853,11 @@ void VulkanEngine::draw_objects(VkCommandBuffer cmd,RenderObject* first, int cou
 {
 	//make a model view matrix for rendering the object
 	//camera view
-	glm::vec3 camPos = { 0.f,-6.f,-10.f };
+	glm::vec3 camPos = { 0.f, 0.f, 0.f };
 
 	glm::mat4 view = glm::translate(glm::mat4(1.f), camPos);
 	//camera projection
-	glm::mat4 projection = glm::perspective(glm::radians(70.f), 1700.f / 900.f, 0.1f, 200.0f);
+	glm::mat4 projection = glm::perspective(glm::radians(70.f), 900.f / 900.f, 0.f, 1.f);
 	projection[1][1] *= -1;	
 
 	GPUCameraData camData;
@@ -930,17 +936,23 @@ void VulkanEngine::draw_objects(VkCommandBuffer cmd,RenderObject* first, int cou
 			//bind the mesh vertex buffer with offset 0
 			VkDeviceSize offset = 0;
 			vkCmdBindVertexBuffers(cmd, 0, 1, &object.mesh->_vertexBuffer._buffer, &offset);
+			vkCmdBindIndexBuffer(cmd, object.mesh->_indexBuffer._buffer, 0, VK_INDEX_TYPE_UINT32);
 			lastMesh = object.mesh;
 		}
 		//we can now draw
-		vkCmdDraw(cmd, object.mesh->_vertices.size(), 1,0 , i);
+		vkCmdDrawIndexed(cmd, object.mesh->_indices.size(), 1, 0, 0, 0);
 	}
 }
 
-
-
 void VulkanEngine::init_scene()
 {
+	// Need to push quad for octree shader rendering.
+	RenderObject rect;
+	rect.mesh = get_mesh("rectangle");
+	rect.material = get_material("defaultmesh");
+	rect.transformMatrix = glm::mat4{ 1.0f };
+	_renderables.push_back(rect);
+
 	RenderObjectOctree octreeModel;
 	octreeModel.octree = get_octree("armadillo");
 	octreeModel.material = get_material("defaultmesh");
@@ -957,7 +969,6 @@ AllocatedBuffer VulkanEngine::create_buffer(size_t allocSize, VkBufferUsageFlags
 	bufferInfo.size = allocSize;
 
 	bufferInfo.usage = usage;
-
 
 	//let the VMA library know that this data should be writeable by CPU, but also readable by GPU
 	VmaAllocationCreateInfo vmaallocInfo = {};
@@ -988,7 +999,6 @@ size_t VulkanEngine::pad_uniform_buffer_size(size_t originalSize)
 
 void VulkanEngine::init_descriptors()
 {
-
 	//create a descriptor pool that will hold 10 uniform buffers
 	std::vector<VkDescriptorPoolSize> sizes =
 	{
@@ -1031,14 +1041,9 @@ void VulkanEngine::init_descriptors()
 
 	vkCreateDescriptorSetLayout(_device, &set2info, nullptr, &_objectSetLayout);
 
-
 	const size_t sceneParamBufferSize = FRAME_OVERLAP * pad_uniform_buffer_size(sizeof(GPUSceneData));
 
 	_sceneParameterBuffer = create_buffer(sceneParamBufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
-	
-	
-
-
 
 	for (int i = 0; i < FRAME_OVERLAP; i++)
 	{
