@@ -58,6 +58,8 @@ void VulkanEngine::init()
 
 	init_sync_structures();
 
+	load_octrees();
+
 	init_descriptors();
 
 	init_pipelines();	
@@ -746,11 +748,17 @@ void VulkanEngine::load_octrees()
 {
 	Octree armadilloOctree;
 
-	armadilloOctree.load_from_npy("../assets/armadillo2.npz");
+	armadilloOctree.load_from_npy("C:/MyWork/sparse-voxel-octree-renderer/assets/armadillo2.npz");
 
 	upload_octree(armadilloOctree);
 
 	_octrees["armadillo"] = armadilloOctree;
+
+	unsigned int* arr = armadilloOctree.points.data<unsigned int>();
+	for (int i = 0; i < armadilloOctree.points.num_bytes(); i += sizeof(unsigned int))
+	{
+		std::cout << arr[i] << " ";
+	}
 }
 
 void VulkanEngine::upload_mesh(Mesh& mesh)
@@ -891,13 +899,10 @@ void VulkanEngine::draw_objects(VkCommandBuffer cmd,RenderObject* first, int cou
 	void* objectData;
 	vmaMapMemory(_allocator, get_current_frame().objectBuffer._allocation, &objectData);
 	
-	GPUObjectData* objectSSBO = (GPUObjectData*)objectData;
+	unsigned int* objectSSBO = (unsigned int*)objectData;
+	memcpy(objectData, _octrees["armadillo"].points.data<void>(), _octrees["armadillo"].points.num_bytes());
 	
-	for (int i = 0; i < count; i++)
-	{
-		RenderObject& object = first[i];
-		objectSSBO[i].modelMatrix = object.transformMatrix;
-	}
+	// TODO: Put the octree data in this SSBO for the shader to parse.
 	
 	vmaUnmapMemory(_allocator, get_current_frame().objectBuffer._allocation);
 
@@ -1030,7 +1035,7 @@ void VulkanEngine::init_descriptors()
 
 	vkCreateDescriptorSetLayout(_device, &setinfo, nullptr, &_globalSetLayout);
 
-	VkDescriptorSetLayoutBinding objectBind = vkinit::descriptorset_layout_binding(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_VERTEX_BIT, 0);
+	VkDescriptorSetLayoutBinding objectBind = vkinit::descriptorset_layout_binding(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_FRAGMENT_BIT, 0);
 
 	VkDescriptorSetLayoutCreateInfo set2info = {};
 	set2info.bindingCount = 1;
@@ -1050,7 +1055,7 @@ void VulkanEngine::init_descriptors()
 		_frames[i].cameraBuffer = create_buffer(sizeof(GPUCameraData), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
 
 		const int MAX_OBJECTS = 10000;
-		_frames[i].objectBuffer = create_buffer(sizeof(GPUObjectData) * MAX_OBJECTS, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
+		_frames[i].objectBuffer = create_buffer(_octrees["armadillo"].points.num_bytes(), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
 
 		VkDescriptorSetAllocateInfo allocInfo = {};
 		allocInfo.pNext = nullptr;
@@ -1083,7 +1088,7 @@ void VulkanEngine::init_descriptors()
 		VkDescriptorBufferInfo objectBufferInfo;
 		objectBufferInfo.buffer = _frames[i].objectBuffer._buffer;
 		objectBufferInfo.offset = 0;
-		objectBufferInfo.range = sizeof(GPUObjectData) * MAX_OBJECTS;
+		objectBufferInfo.range = _octrees["armadillo"].points.num_bytes();
 
 
 		VkWriteDescriptorSet cameraWrite = vkinit::write_descriptor_buffer(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, _frames[i].globalDescriptor,&cameraInfo,0);

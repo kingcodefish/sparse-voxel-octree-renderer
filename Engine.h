@@ -109,10 +109,6 @@ struct GPUSceneData {
 	glm::vec4 sunlightColor;
 };
 
-struct GPUObjectData {
-	glm::mat4 modelMatrix;
-};
-
 constexpr unsigned int FRAME_OVERLAP = 2;
 
 class VulkanEngine {

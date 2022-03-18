@@ -26,6 +26,7 @@ add_executable(svo-renderer
 conan_target_link_libraries(svo-renderer)
 target_include_directories(svo-renderer PRIVATE ${Vulkan_INCLUDE_DIR})
 target_link_libraries(svo-renderer ${Vulkan_LIBRARY})
+target_compile_features(svo-renderer PUBLIC cxx_std_17)
 
 
 find_package(Vulkan REQUIRED COMPONENTS glslc)
