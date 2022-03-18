@@ -8,7 +8,8 @@ layout (location = 0) in vec3 inColor;
 layout (location = 0) out vec4 outFragColor;
 
 layout(std140, set = 1, binding = 0) readonly buffer OctreeBuffer{
-	uint octreeData[];
+	uint points[];
+	uint pyramid[];
 } octreeBuffer;
 
 bool octreeHit(vec3 pos)

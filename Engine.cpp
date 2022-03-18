@@ -754,8 +754,8 @@ void VulkanEngine::load_octrees()
 
 	_octrees["armadillo"] = armadilloOctree;
 
-	unsigned int* arr = armadilloOctree.points.data<unsigned int>();
-	for (int i = 0; i < armadilloOctree.points.num_bytes(); i += sizeof(unsigned int))
+	unsigned int* arr = armadilloOctree.points.data();
+	for (int i = 0; i < armadilloOctree.points.size(); i++)
 	{
 		std::cout << arr[i] << " ";
 	}
@@ -900,9 +900,8 @@ void VulkanEngine::draw_objects(VkCommandBuffer cmd,RenderObject* first, int cou
 	vmaMapMemory(_allocator, get_current_frame().objectBuffer._allocation, &objectData);
 	
 	unsigned int* objectSSBO = (unsigned int*)objectData;
-	memcpy(objectData, _octrees["armadillo"].points.data<void>(), _octrees["armadillo"].points.num_bytes());
-	
-	// TODO: Put the octree data in this SSBO for the shader to parse.
+	memcpy(objectData, _octrees["armadillo"].points.data(), _octrees["armadillo"].points.size() * sizeof(unsigned int));
+	memcpy(static_cast<unsigned int*>(objectData) + _octrees["armadillo"].points.size(), _octrees["armadillo"].pyramid.data(), _octrees["armadillo"].pyramid.size() * sizeof(unsigned int));
 	
 	vmaUnmapMemory(_allocator, get_current_frame().objectBuffer._allocation);
 
@@ -1055,7 +1054,7 @@ void VulkanEngine::init_descriptors()
 		_frames[i].cameraBuffer = create_buffer(sizeof(GPUCameraData), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
 
 		const int MAX_OBJECTS = 10000;
-		_frames[i].objectBuffer = create_buffer(_octrees["armadillo"].points.num_bytes(), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
+		_frames[i].objectBuffer = create_buffer(_octrees["armadillo"].points.size() * sizeof(unsigned int) + _octrees["armadillo"].pyramid.size() * sizeof(unsigned int), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
 
 		VkDescriptorSetAllocateInfo allocInfo = {};
 		allocInfo.pNext = nullptr;
@@ -1088,7 +1087,7 @@ void VulkanEngine::init_descriptors()
 		VkDescriptorBufferInfo objectBufferInfo;
 		objectBufferInfo.buffer = _frames[i].objectBuffer._buffer;
 		objectBufferInfo.offset = 0;
-		objectBufferInfo.range = _octrees["armadillo"].points.num_bytes();
+		objectBufferInfo.range = _octrees["armadillo"].points.size() * sizeof(unsigned int) + _octrees["armadillo"].pyramid.size() * sizeof(unsigned int);
 
 
 		VkWriteDescriptorSet cameraWrite = vkinit::write_descriptor_buffer(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, _frames[i].globalDescriptor,&cameraInfo,0);
