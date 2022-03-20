@@ -90,8 +90,9 @@ struct FrameData {
 	AllocatedBuffer cameraBuffer;
 	VkDescriptorSet globalDescriptor;
 
-	AllocatedBuffer objectBuffer;
-	VkDescriptorSet objectDescriptor;
+	AllocatedBuffer pointsBuffer;
+	AllocatedBuffer pyramidBuffer;
+	VkDescriptorSet octreeDescriptor;
 };
 
 struct GPUCameraData{
@@ -158,7 +159,7 @@ public:
 	VkDescriptorPool _descriptorPool;
 
 	VkDescriptorSetLayout _globalSetLayout;
-	VkDescriptorSetLayout _objectSetLayout;
+	VkDescriptorSetLayout _octreeSetLayout;
 
 	GPUSceneData _sceneParameters;
 	AllocatedBuffer _sceneParameterBuffer;

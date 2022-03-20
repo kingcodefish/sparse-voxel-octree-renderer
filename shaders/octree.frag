@@ -7,24 +7,33 @@ layout (location = 0) in vec3 inColor;
 //output write
 layout (location = 0) out vec4 outFragColor;
 
-layout(std140, set = 1, binding = 0) readonly buffer OctreeBuffer{
+layout(std140, set = 1, binding = 0) readonly buffer PointsBuffer{
 	uint points[];
+} pointsBuffer;
+
+layout(std140, set = 1, binding = 1) readonly buffer PyramidBuffer{
 	uint pyramid[];
-} octreeBuffer;
+} pyramidBuffer;
 
 bool octreeHit(vec3 pos)
 {
 	return false;
 }
 
-vec4 raymarch(vec3 pos, vec3 dir)
+int level = 5;
+
+vec4 raytrace(vec3 pos, vec3 dir)
 {
-	for (int i = 0; i < 10; i++)
+	uint osize = pyramidBuffer.pyramid[3];
+	if (osize > 0)
+		return vec4(0.0, 1.0, 0.0, 1.0);
+
+	for (int i = 0; i < 50; i++)
 	{
 		if (octreeHit(pos))
 			return vec4(1.0, 0.0, 0.0, 1.0);
 
-		pos += dir * 10;
+		pos += dir * 1.0;
 	}
 
 	return vec4(0.0, 0.0, 0.0, 1.0);
@@ -32,5 +41,5 @@ vec4 raymarch(vec3 pos, vec3 dir)
 
 void main()
 {
-	outFragColor = raymarch(vec3(0.5, 0.5, 0.0), vec3(0.0, 0.0, 0.0));
+	outFragColor = raytrace(vec3(0.5, 0.5, 0.0), vec3(0.0, 0.0, 1.0));
 }
